@@ -1,11 +1,24 @@
-import { useState } from 'react'
+import React from "react";
+import { useState, useEffect } from 'react'
+import axios from 'axios'
 import './App.css'
+import Auth from './components/Auth'
 
 function App() {
   const [input, setInput] = useState('{\n  "data": ["A->B", "A->C", "B->D"]\n}')
   const [response, setResponse] = useState(null)
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [token, setToken] = useState(localStorage.getItem('token'))
+  const [user, setUser] = useState(JSON.parse(localStorage.getItem('user')))
+  const API_URL = "http://localhost:3000";
+
+  const handleLogout = () => {
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+    setToken(null)
+    setUser(null)
+  }
 
   const handleSubmit = async () => {
     setLoading(true)
@@ -25,30 +38,34 @@ function App() {
         throw new Error('Input must be a JSON object with a "data" array.')
       }
 
-      const res = await fetch('http://localhost:3000/bfhl', {
-        method: 'POST',
+      const res = await axios.post(`${API_URL}/bfhl`, parsedInput, {
         headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(parsedInput),
+          Authorization: `Bearer ${token}`
+        }
       })
 
-      const data = await res.json()
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Server error occurred')
-      }
-
-      setResponse(data)
+      setResponse(res.data)
     } catch (err) {
-      setError(err.message)
+      setError(err.response?.data?.error || err.message)
     } finally {
       setLoading(false)
     }
   }
 
+  if (!token) {
+    return <Auth setToken={setToken} setUser={setUser} />
+  }
+
   return (
     <div className="App">
+      <div className="user-header">
+        <div style={{ textAlign: 'left' }}>
+          <p style={{ margin: 0, fontSize: '0.9rem', color: '#94a3b8' }}>Welcome back,</p>
+          <p style={{ margin: 0, fontWeight: 700 }}>{user?.name}</p>
+        </div>
+        <button className="logout-btn" onClick={handleLogout}>Logout</button>
+      </div>
+
       <h1>Hierarchy Insight Engine</h1>
       <p style={{ color: '#94a3b8', marginBottom: '2rem' }}>
         Paste your node relationships in JSON format to process hierarchies.
@@ -61,9 +78,9 @@ function App() {
           placeholder='{"data": ["A->B", "A->C"]}'
           spellCheck="false"
         />
-        
+
         {error && <div className="error">{error}</div>}
-        
+
         <button onClick={handleSubmit} disabled={loading}>
           {loading ? 'Processing...' : 'Process Hierarchies'}
         </button>
@@ -72,7 +89,7 @@ function App() {
       {response && (
         <div className="output-container">
           <h2>Results</h2>
-          
+
           <div className="summary-grid">
             <div className="summary-item">
               <h3>Total Trees</h3>

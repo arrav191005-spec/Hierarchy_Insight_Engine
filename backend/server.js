@@ -1,50 +1,78 @@
-const express = require('express');
-const cors = require('cors');
-const { processHierarchies } = require('./processor');
+require("dotenv").config();
+const express = require("express");
+const cors = require("cors");
+
+/* -------- DB CONNECTION -------- */
+require("./db"); // This will run the MongoDB connection
+
+/* -------- IMPORTS -------- */
+const { processHierarchies } = require("./processor");
+const authRoutes = require("./routes/auth");
+const { protect } = require("./middleware/auth");
+const Response = require("./models/ResponseSchema");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Enable CORS for all origins
+/* -------- MIDDLEWARE -------- */
+
 app.use(cors());
 app.use(express.json());
 
-/**
- * POST /bfhl
- * Processes hierarchical data provided in the request body.
- */
-app.post('/bfhl', (req, res) => {
+/* -------- ROUTES -------- */
+
+// Auth routes
+app.use("/auth", authRoutes);
+
+// Process hierarchy data
+app.post("/bfhl", protect, async (req, res) => {
     try {
         const { data } = req.body;
 
         if (!data || !Array.isArray(data)) {
-            return res.status(400).json({ 
-                error: "Invalid input. Expected JSON body with a 'data' array of strings." 
+            return res.status(400).json({
+                error: "Invalid input. Expected JSON body with a 'data' array."
             });
         }
 
         const result = processHierarchies(data);
 
-        // Final Response Format as requested
         const finalResponse = {
-            user_id: "arrav_24042026", // Example: yourname_ddmmyyyy
-            email_id: "arrav@example.com", // Placeholder
-            college_roll_number: "SRM-12345", // Placeholder
+            user_id: "arrav_24042026",
+            email_id: "arrav@example.com",
+            college_roll_number: "SRM-12345",
             ...result
         };
 
+        // Save result in MongoDB
+        const saved = new Response(finalResponse);
+        await saved.save();
+
         res.json(finalResponse);
+
     } catch (error) {
         console.error("API Error:", error);
-        res.status(500).json({ error: "An internal server error occurred while processing the request." });
+        res.status(500).json({ error: "Internal server error" });
     }
 });
 
-// Simple health check endpoint
-app.get('/', (req, res) => {
-    res.send("Hierarchy Insight Engine API is running.");
+// Get stored responses
+app.get("/data", async (req, res) => {
+    try {
+        const data = await Response.find();
+        res.json(data);
+    } catch (error) {
+        res.status(500).json({ error: "Failed to fetch data" });
+    }
 });
 
+// Health check
+app.get("/", (req, res) => {
+    res.send("Hierarchy Insight Engine API running");
+});
+
+/* -------- SERVER -------- */
+
 app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
+    console.log(`Server running at http://localhost:${PORT}`);
 });
