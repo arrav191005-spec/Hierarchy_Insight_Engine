@@ -45,7 +45,7 @@ const Auth = ({ setToken, setUser }) => {
     } catch (err) {
       console.error('Auth Error:', err);
       const msg = err.response?.data?.error || err.message || 'Authentication failed';
-      setError(msg);
+      setError(`${msg} (Target: ${API_URL})`);
     } finally {
       setLoading(false);
     }
