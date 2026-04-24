@@ -11,7 +11,7 @@ function App() {
   const [loading, setLoading] = useState(false)
   const [token, setToken] = useState(localStorage.getItem('token'))
   const [user, setUser] = useState(JSON.parse(localStorage.getItem('user')))
-  const API_URL = "http://localhost:3000";
+  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
   const handleLogout = () => {
     localStorage.removeItem('token')

@@ -15,7 +15,7 @@ const Auth = ({ setToken, setUser }) => {
   // const API_URL = window.location.hostname === 'localhost' 
   //   ? 'http://localhost:3000' 
   //   : 'https://your-backend-url.render.com'; // Replace with your Render/Railway URL
-  const API_URL = "http://localhost:3000";
+  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
   const { name, email, password } = formData;
 
